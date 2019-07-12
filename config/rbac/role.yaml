@@ -1,0 +1,68 @@
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: manager-role
+rules:
+- apiGroups:
+  - blog.torresi.io
+  resources:
+  - blogposts
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - blog.torresi.io
+  resources:
+  - blogposts/status
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - blog.torresi.io
+  resources:
+  - comments
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - blog.torresi.io
+  resources:
+  - comments/status
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - blog.torresi.io
+  resources:
+  - commentupvotes
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - blog.torresi.io
+  resources:
+  - commentupvotes/status
+  verbs:
+  - get
+  - update
+  - patch

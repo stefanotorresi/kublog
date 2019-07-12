@@ -1,0 +1,13 @@
+version: "2"
+domain: torresi.io
+repo: stefanotorresi/kublog
+resources:
+- group: blog
+  version: v1
+  kind: BlogPost
+- group: blog
+  version: v1
+  kind: Comment
+- group: blog
+  version: v1
+  kind: CommentUpvote

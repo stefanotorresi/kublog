@@ -1,0 +1,7 @@
+apiVersion: blog.torresi.io/v1
+kind: CommentUpvote
+metadata:
+  name: commentupvote-sample
+spec:
+  # Add fields here
+  foo: bar
