@@ -1,7 +1,7 @@
 apiVersion: blog.torresi.io/v1
 kind: BlogPost
 metadata:
-  name: blogpost-sample
+  name: foo
 spec:
-  # Add fields here
-  foo: bar
+  title: "Foo"
+  body: "Lorem ipsum dolor sit amet"

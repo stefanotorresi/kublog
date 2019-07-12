@@ -1,27 +1,33 @@
 package v1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+// Important: Run "make" to regenerate code after modifying this file
 
 // BlogPostSpec defines the desired state of BlogPost
 type BlogPostSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	Title string `json:"title"`
+	Body  string `json:"body"`
+
+	// +optional
+	Date *metav1.Time `json:"date,omitempty"`
 }
 
 // BlogPostStatus defines the observed state of BlogPost
 type BlogPostStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	Comments     []corev1.ObjectReference `json:"comments"`
+	CommentCount int32                    `json:"commentCount"`
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 
 // BlogPost is the Schema for the blogposts API
+// +kubebuilder:printcolumn:name="Title",type="string",JSONPath=".spec.title",description="The title of the blog post"
 type BlogPost struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
