@@ -1,7 +1,6 @@
 package v1
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -10,20 +9,21 @@ import (
 
 // CommentSpec defines the desired state of Comment
 type CommentSpec struct {
-	BlogPost corev1.ObjectReference `json:"blogPost"`
-	Text     string                 `json:"text"`
+	BlogPostName string `json:"blogPostName"`
+	Text         string `json:"text"`
 }
 
 // CommentStatus defines the observed state of Comment
 type CommentStatus struct {
-	Upvotes     []corev1.ObjectReference `json:"upvotes"`
-	UpvoteCount int32                    `json:"commentCount"`
+	UpvoteCount int `json:"upvoteCount"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
 // Comment is the Schema for the comments API
+// +kubebuilder:printcolumn:name="BlogPost",type="string",JSONPath=".spec.blogPostName", description="The name of the blog post"
+// +kubebuilder:printcolumn:name="UpvotesCount",type="integer",JSONPath=".status.upvoteCount", description="The number of upvotes for this comment"
 type Comment struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

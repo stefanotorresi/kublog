@@ -1,7 +1,6 @@
 package v1
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -10,7 +9,7 @@ import (
 
 // CommentUpvoteSpec defines the desired state of CommentUpvote
 type CommentUpvoteSpec struct {
-	Comment corev1.ObjectReference `json:"comment"`
+	CommentName string `json:"commentName"`
 }
 
 // +kubebuilder:object:root=true

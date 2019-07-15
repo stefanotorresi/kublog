@@ -1,7 +1,8 @@
 apiVersion: blog.torresi.io/v1
 kind: BlogPost
 metadata:
-  name: foo
+  name: blogpost-sample
 spec:
   title: "Foo"
   body: "Lorem ipsum dolor sit amet"
+  date: "2019-07-15T19:03:11+02:00"

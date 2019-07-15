@@ -3,5 +3,4 @@ kind: CommentUpvote
 metadata:
   name: commentupvote-sample
 spec:
-  # Add fields here
-  foo: bar
+  commentName: comment-sample

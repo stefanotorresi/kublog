@@ -53,17 +53,21 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "BlogPost")
 		os.Exit(1)
 	}
+
 	err = (&controllers.CommentReconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("Comment"),
+		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Comment")
 		os.Exit(1)
 	}
+
 	err = (&controllers.CommentUpvoteReconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("CommentUpvote"),
+		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CommentUpvote")

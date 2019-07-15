@@ -1,7 +1,6 @@
 package v1
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -10,17 +9,14 @@ import (
 
 // BlogPostSpec defines the desired state of BlogPost
 type BlogPostSpec struct {
-	Title string `json:"title"`
-	Body  string `json:"body"`
-
-	// +optional
-	Date *metav1.Time `json:"date,omitempty"`
+	Title string      `json:"title"`
+	Body  string      `json:"body"`
+	Date  metav1.Time `json:"date"`
 }
 
 // BlogPostStatus defines the observed state of BlogPost
 type BlogPostStatus struct {
-	Comments     []corev1.ObjectReference `json:"comments"`
-	CommentCount int32                    `json:"commentCount"`
+	CommentCount int `json:"commentCount"`
 }
 
 // +kubebuilder:object:root=true
@@ -28,6 +24,7 @@ type BlogPostStatus struct {
 
 // BlogPost is the Schema for the blogposts API
 // +kubebuilder:printcolumn:name="Title",type="string",JSONPath=".spec.title",description="The title of the blog post"
+// +kubebuilder:printcolumn:name="CommentCount",type="integer",JSONPath=".status.commentCount", description="The number of comments for this post"
 type BlogPost struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

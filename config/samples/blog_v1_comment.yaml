@@ -3,5 +3,5 @@ kind: Comment
 metadata:
   name: comment-sample
 spec:
-  # Add fields here
-  foo: bar
+  blogPostName: blogpost-sample
+  text: "lorem ipsum dolor sit amet"
