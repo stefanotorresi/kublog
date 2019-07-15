@@ -9,8 +9,7 @@ import (
 
 // CommentSpec defines the desired state of Comment
 type CommentSpec struct {
-	BlogPostName string `json:"blogPostName"`
-	Text         string `json:"text"`
+	Text string `json:"text"`
 }
 
 // CommentStatus defines the observed state of Comment
@@ -22,7 +21,7 @@ type CommentStatus struct {
 // +kubebuilder:subresource:status
 
 // Comment is the Schema for the comments API
-// +kubebuilder:printcolumn:name="BlogPost",type="string",JSONPath=".spec.blogPostName", description="The name of the blog post"
+// +kubebuilder:printcolumn:name="BlogPost",type="string",JSONPath=".metadata.owner", description="The name of the blog post"
 // +kubebuilder:printcolumn:name="UpvotesCount",type="integer",JSONPath=".status.upvoteCount", description="The number of upvotes for this comment"
 type Comment struct {
 	metav1.TypeMeta   `json:",inline"`

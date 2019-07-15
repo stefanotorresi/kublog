@@ -7,7 +7,7 @@ metadata:
   name: comments.blog.torresi.io
 spec:
   additionalPrinterColumns:
-  - JSONPath: .spec.blogPostName
+  - JSONPath: .metadata.owner
     description: The name of the blog post
     name: BlogPost
     type: string
@@ -396,12 +396,9 @@ spec:
           type: object
         spec:
           properties:
-            blogPostName:
-              type: string
             text:
               type: string
           required:
-          - blogPostName
           - text
           type: object
         status:

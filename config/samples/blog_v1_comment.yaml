@@ -2,6 +2,7 @@ apiVersion: blog.torresi.io/v1
 kind: Comment
 metadata:
   name: comment-sample
+  labels:
+    blogpost: blogpost-sample
 spec:
-  blogPostName: blogpost-sample
   text: "lorem ipsum dolor sit amet"

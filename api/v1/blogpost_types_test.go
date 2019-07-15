@@ -39,10 +39,16 @@ var _ = Describe("BlogPost", func() {
 				Namespace: "default",
 			}
 			created = &BlogPost{
+				Spec: BlogPostSpec{
+					Title: "title",
+					Body:  "body",
+					Date:  metav1.Unix(0, 0),
+				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
 					Namespace: "default",
-				}}
+				},
+			}
 
 			By("creating an API obj")
 			Expect(k8sClient.Create(context.TODO(), created)).To(Succeed())

@@ -5,8 +5,6 @@ import (
 
 	"github.com/go-logr/logr"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -42,12 +40,11 @@ func (r *BlogPostReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	var commentList blogv1.CommentList
-
-	err = r.List(
-		ctx,
-		&commentList,
+	listOptions := []client.ListOptionFunc{
 		client.InNamespace(req.Namespace),
-		client.MatchingField(".metadata.controller", req.Name))
+		client.MatchingLabels(map[string]string{"blogpost": req.Name}),
+	}
+	err = r.List(ctx, &commentList, listOptions...)
 	if err != nil {
 		log.Error(err, "unable to get comment list")
 		return ctrl.Result{}, err
@@ -72,23 +69,6 @@ func (r *BlogPostReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 }
 
 func (r *BlogPostReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	indexCommentsByBlogPostName := func(rawObj runtime.Object) []string {
-		comment := rawObj.(*blogv1.Comment)
-		owner := metav1.GetControllerOf(comment)
-		if owner == nil {
-			return nil
-		}
-		if owner.APIVersion != blogv1.GroupVersion.String() || owner.Kind != "BlogPost" {
-			return nil
-		}
-		return []string{owner.Name}
-	}
-
-	err := mgr.GetFieldIndexer().IndexField(&blogv1.Comment{}, ".metadata.controller", indexCommentsByBlogPostName)
-	if err != nil {
-		return err
-	}
-
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&blogv1.BlogPost{}).
 		Owns(&blogv1.Comment{}).

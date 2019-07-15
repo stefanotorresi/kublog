@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"errors"
 
 	"github.com/go-logr/logr"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
@@ -41,17 +42,9 @@ func (r *CommentUpvoteReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		return ctrl.Result{}, err
 	}
 
-	var comment blogv1.Comment
-	key := types.NamespacedName{Namespace: req.Namespace, Name: upvote.Spec.CommentName}
-	err = r.Get(ctx, key, &comment)
+	err = r.setOwner(req, ctx, &upvote)
 	if err != nil {
-		log.Error(err, "could not find comment")
-		return ctrl.Result{}, err
-	}
-
-	err = ctrl.SetControllerReference(&comment, &upvote, r.Scheme)
-	if err != nil {
-		log.Error(err, "could set owner reference")
+		log.Error(err, "unable to set comment owner")
 		return ctrl.Result{}, err
 	}
 
@@ -68,4 +61,24 @@ func (r *CommentUpvoteReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&blogv1.CommentUpvote{}).
 		Complete(r)
+}
+
+func (r *CommentUpvoteReconciler) setOwner(req ctrl.Request, ctx context.Context, upvote *blogv1.CommentUpvote) error {
+	if _, ok := upvote.Labels["comment"]; ok != true {
+		return errors.New("missing 'comment' label")
+	}
+
+	var comment blogv1.Comment
+	key := types.NamespacedName{Namespace: req.Namespace, Name: upvote.Labels["comment"]}
+	err := r.Get(ctx, key, &comment)
+	if err != nil {
+		return err
+	}
+
+	err = ctrl.SetControllerReference(&comment, upvote, r.Scheme)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

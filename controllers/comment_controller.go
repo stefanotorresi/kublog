@@ -2,10 +2,10 @@ package controllers
 
 import (
 	"context"
+	"errors"
 
 	"github.com/go-logr/logr"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -43,17 +43,9 @@ func (r *CommentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	}
 
-	var blogPost blogv1.BlogPost
-	key := types.NamespacedName{Namespace: req.Namespace, Name: comment.Spec.BlogPostName}
-	err = r.Get(ctx, key, &blogPost)
+	err = r.setOwner(req, ctx, &comment)
 	if err != nil {
-		log.Error(err, "could not find blog post")
-		return ctrl.Result{}, err
-	}
-
-	err = ctrl.SetControllerReference(&blogPost, &comment, r.Scheme)
-	if err != nil {
-		log.Error(err, "could set owner reference")
+		log.Error(err, "unable to set comment owner")
 		return ctrl.Result{}, err
 	}
 
@@ -64,12 +56,11 @@ func (r *CommentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	var upvoteList blogv1.CommentUpvoteList
-
-	err = r.List(
-		ctx,
-		&upvoteList,
+	listOptions := []client.ListOptionFunc{
 		client.InNamespace(req.Namespace),
-		client.MatchingField(".metadata.controller", req.Name))
+		client.MatchingLabels(map[string]string{"comment": req.Name}),
+	}
+	err = r.List(ctx, &upvoteList, listOptions...)
 	if err != nil {
 		log.Error(err, "unable to get upvote list")
 		return ctrl.Result{}, err
@@ -85,7 +76,7 @@ func (r *CommentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	err = r.Status().Update(ctx, &comment)
 	if err != nil {
-		log.Error(err, "unable to update status")
+		log.Error(err, "unable to update comment status")
 		return ctrl.Result{}, err
 	}
 
@@ -95,25 +86,28 @@ func (r *CommentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 }
 
 func (r *CommentReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	indexUpvotesByCommentName := func(rawObj runtime.Object) []string {
-		comment := rawObj.(*blogv1.CommentUpvote)
-		owner := metav1.GetControllerOf(comment)
-		if owner == nil {
-			return nil
-		}
-		if owner.APIVersion != blogv1.GroupVersion.String() || owner.Kind != "Comment" {
-			return nil
-		}
-		return []string{owner.Name}
-	}
-
-	err := mgr.GetFieldIndexer().IndexField(&blogv1.CommentUpvote{}, ".metadata.controller", indexUpvotesByCommentName)
-	if err != nil {
-		return err
-	}
-
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&blogv1.Comment{}).
 		Owns(&blogv1.CommentUpvote{}).
 		Complete(r)
+}
+
+func (r *CommentReconciler) setOwner(req ctrl.Request, ctx context.Context, comment *blogv1.Comment) error {
+	if _, ok := comment.Labels["blogpost"]; ok != true {
+		return errors.New("missing 'blogpost' label")
+	}
+
+	var blogPost blogv1.BlogPost
+	key := types.NamespacedName{Namespace: req.Namespace, Name: comment.Labels["blogpost"]}
+	err := r.Get(ctx, key, &blogPost)
+	if err != nil {
+		return err
+	}
+
+	err = ctrl.SetControllerReference(&blogPost, comment, r.Scheme)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

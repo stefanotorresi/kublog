@@ -2,5 +2,5 @@ apiVersion: blog.torresi.io/v1
 kind: CommentUpvote
 metadata:
   name: commentupvote-sample
-spec:
-  commentName: comment-sample
+  labels:
+    comment: comment-sample
