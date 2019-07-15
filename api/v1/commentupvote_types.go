@@ -1,22 +1,16 @@
 package v1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+// Important: Run "make" to regenerate code after modifying this file
 
 // CommentUpvoteSpec defines the desired state of CommentUpvote
 type CommentUpvoteSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-}
-
-// CommentUpvoteStatus defines the observed state of CommentUpvote
-type CommentUpvoteStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	Comment corev1.ObjectReference `json:"comment"`
 }
 
 // +kubebuilder:object:root=true
@@ -26,8 +20,7 @@ type CommentUpvote struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   CommentUpvoteSpec   `json:"spec,omitempty"`
-	Status CommentUpvoteStatus `json:"status,omitempty"`
+	Spec CommentUpvoteSpec `json:"spec,omitempty"`
 }
 
 // +kubebuilder:object:root=true
