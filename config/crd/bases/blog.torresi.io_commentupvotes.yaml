@@ -383,13 +383,6 @@ spec:
                 by the system. Read-only. More info: http://kubernetes.io/docs/user-guide/identifiers#uids"
               type: string
           type: object
-        spec:
-          properties:
-            commentName:
-              type: string
-          required:
-          - commentName
-          type: object
       type: object
   versions:
   - name: v1
