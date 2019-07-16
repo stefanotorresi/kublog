@@ -16,21 +16,22 @@ import (
 // These tests are written in BDD-style using Ginkgo framework. Refer to
 // http://onsi.github.io/ginkgo to learn more.
 
-var _ = Describe("BlogPostReconciler", func() {
+var _ = Describe("CommentReconciler", func() {
 
 	var ctx context.Context
-	var SUT *BlogPostReconciler
+	var SUT *CommentUpvoteReconciler
 
 	BeforeEach(func() {
 		ctx = context.Background()
 
-		SUT = &BlogPostReconciler{
+		SUT = &CommentUpvoteReconciler{
 			Client: k8sClient,
 			Log:    &logrtesting.NullLogger{},
+			Scheme: testScheme,
 		}
 	})
 
-	It("should update CommentCount on a BlogPost Status", func() {
+	It("should register a Comment as owner reference on a CommentUpvote", func() {
 
 		By("creating a blogpost")
 		blogPost := &blogv1.BlogPost{
@@ -59,9 +60,19 @@ var _ = Describe("BlogPostReconciler", func() {
 		}
 		Expect(k8sClient.Create(ctx, comment)).To(Succeed())
 
+		By("creating a comment upvote")
+		commentUpvote := &blogv1.CommentUpvote{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "upvote",
+				Namespace: namespace,
+				Labels:    map[string]string{"comment": comment.Name},
+			},
+		}
+		Expect(k8sClient.Create(ctx, commentUpvote)).To(Succeed())
+
 		By("reconciling")
 		key := types.NamespacedName{
-			Name:      blogPost.Name,
+			Name:      commentUpvote.Name,
 			Namespace: namespace,
 		}
 		req := ctrl.Request{
@@ -70,9 +81,9 @@ var _ = Describe("BlogPostReconciler", func() {
 		_, err := SUT.Reconcile(req)
 		Expect(err).ToNot(HaveOccurred())
 
-		reconciled := &blogv1.BlogPost{}
+		reconciled := &blogv1.CommentUpvote{}
 		Expect(k8sClient.Get(ctx, key, reconciled)).To(Succeed())
-		Expect(reconciled.Status.CommentCount).To(Equal(1))
+		Expect(reconciled.ObjectMeta.OwnerReferences[0].UID).To(Equal(comment.UID))
 
 	})
 

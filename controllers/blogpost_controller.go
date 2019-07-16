@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
+	"github.com/pkg/errors"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -37,7 +38,7 @@ func (r *BlogPostReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	}
 
-	numComments, err := r.countComments(ctx, log, blogPost)
+	numComments, err := r.countComments(ctx, blogPost)
 	if err != nil {
 		log.Error(err, "unable to count comments")
 		return ctrl.Result{}, err
@@ -59,7 +60,14 @@ func (r *BlogPostReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
 
-func (r *BlogPostReconciler) countComments(ctx context.Context, log logr.Logger, blogPost *blogv1.BlogPost) (numComments int, err error) {
+func (r *BlogPostReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&blogv1.BlogPost{}).
+		Owns(&blogv1.Comment{}).
+		Complete(r)
+}
+
+func (r *BlogPostReconciler) countComments(ctx context.Context, blogPost *blogv1.BlogPost) (numComments int, err error) {
 	var commentList blogv1.CommentList
 
 	listOptions := []client.ListOptionFunc{
@@ -68,18 +76,11 @@ func (r *BlogPostReconciler) countComments(ctx context.Context, log logr.Logger,
 	}
 	err = r.List(ctx, &commentList, listOptions...)
 	if err != nil {
-		log.Error(err, "unable to get comment list")
+		err = errors.Wrap(err, "unable to get comment list")
 		return numComments, err
 	}
 
 	numComments = len(commentList.Items)
 
 	return numComments, err
-}
-
-func (r *BlogPostReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&blogv1.BlogPost{}).
-		Owns(&blogv1.Comment{}).
-		Complete(r)
 }

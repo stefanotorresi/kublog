@@ -2,9 +2,9 @@ package controllers
 
 import (
 	"context"
-	"errors"
 
 	"github.com/go-logr/logr"
+	"github.com/pkg/errors"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -29,9 +29,9 @@ func (r *CommentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("comment", req.NamespacedName)
 
-	var comment blogv1.Comment
+	comment := &blogv1.Comment{}
 
-	err := r.Get(ctx, req.NamespacedName, &comment)
+	err := r.Get(ctx, req.NamespacedName, comment)
 
 	if apierrs.IsNotFound(err) {
 		log.Info("resource gone")
@@ -43,30 +43,23 @@ func (r *CommentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	}
 
-	err = r.setOwner(req, ctx, &comment)
+	err = r.setOwner(ctx, comment)
 	if err != nil {
 		log.Error(err, "unable to set comment owner")
 		return ctrl.Result{}, err
 	}
 
-	err = r.Update(ctx, &comment)
+	err = r.Update(ctx, comment)
 	if err != nil {
 		log.Error(err, "unable to update comment")
 		return ctrl.Result{}, err
 	}
 
-	var upvoteList blogv1.CommentUpvoteList
-	listOptions := []client.ListOptionFunc{
-		client.InNamespace(req.Namespace),
-		client.MatchingLabels(map[string]string{"comment": req.Name}),
-	}
-	err = r.List(ctx, &upvoteList, listOptions...)
+	numUpvotes, err := r.countUpvotes(ctx, comment)
 	if err != nil {
-		log.Error(err, "unable to get upvote list")
+		log.Error(err, "unable to count upvotes")
 		return ctrl.Result{}, err
 	}
-
-	numUpvotes := len(upvoteList.Items)
 
 	if numUpvotes == comment.Status.UpvoteCount {
 		return ctrl.Result{}, nil
@@ -74,7 +67,7 @@ func (r *CommentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	comment.Status.UpvoteCount = numUpvotes
 
-	err = r.Status().Update(ctx, &comment)
+	err = r.Status().Update(ctx, comment)
 	if err != nil {
 		log.Error(err, "unable to update comment status")
 		return ctrl.Result{}, err
@@ -92,22 +85,40 @@ func (r *CommentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *CommentReconciler) setOwner(req ctrl.Request, ctx context.Context, comment *blogv1.Comment) error {
+func (r *CommentReconciler) setOwner(ctx context.Context, comment *blogv1.Comment) error {
 	if _, ok := comment.Labels["blogpost"]; ok != true {
 		return errors.New("missing 'blogpost' label")
 	}
 
-	var blogPost blogv1.BlogPost
-	key := types.NamespacedName{Namespace: req.Namespace, Name: comment.Labels["blogpost"]}
-	err := r.Get(ctx, key, &blogPost)
+	blogPost := &blogv1.BlogPost{}
+	key := types.NamespacedName{Namespace: comment.Namespace, Name: comment.Labels["blogpost"]}
+	err := r.Get(ctx, key, blogPost)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "unable to get the owner resource")
 	}
 
-	err = ctrl.SetControllerReference(&blogPost, comment, r.Scheme)
+	err = ctrl.SetControllerReference(blogPost, comment, r.Scheme)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "unable to set the owner reference")
 	}
 
 	return nil
+}
+
+func (r *CommentReconciler) countUpvotes(ctx context.Context, comment *blogv1.Comment) (numUpvotes int, err error) {
+	var upvoteList blogv1.CommentUpvoteList
+
+	listOptions := []client.ListOptionFunc{
+		client.InNamespace(comment.Namespace),
+		client.MatchingLabels(map[string]string{"comment": comment.Name}),
+	}
+	err = r.List(ctx, &upvoteList, listOptions...)
+	if err != nil {
+		err = errors.Wrap(err, "unable to get upvote list")
+		return numUpvotes, err
+	}
+
+	numUpvotes = len(upvoteList.Items)
+
+	return numUpvotes, err
 }

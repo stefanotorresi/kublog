@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -25,6 +26,8 @@ var cfg *rest.Config
 var k8sClient client.Client
 var testEnv *envtest.Environment
 var testScheme = scheme.Scheme
+var namespace string
+var testIndex int
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -49,12 +52,6 @@ var _ = BeforeSuite(func(done Done) {
 	err = blogv1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = blogv1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-
-	err = blogv1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-
 	// +kubebuilder:scaffold:scheme
 
 	k8sClient, err = client.New(cfg, client.Options{Scheme: testScheme})
@@ -63,6 +60,14 @@ var _ = BeforeSuite(func(done Done) {
 
 	close(done)
 }, 60)
+
+var _ = BeforeEach(func() {
+	namespace = fmt.Sprintf("test-%d", testIndex)
+})
+
+var _ = AfterEach(func() {
+	testIndex = testIndex + 1
+})
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")

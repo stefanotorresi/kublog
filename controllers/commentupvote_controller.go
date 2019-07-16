@@ -2,9 +2,9 @@ package controllers
 
 import (
 	"context"
-	"errors"
 
 	"github.com/go-logr/logr"
+	"github.com/pkg/errors"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -28,9 +28,9 @@ func (r *CommentUpvoteReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 	ctx := context.Background()
 	log := r.Log.WithValues("comment", req.NamespacedName)
 
-	var upvote blogv1.CommentUpvote
+	upvote := &blogv1.CommentUpvote{}
 
-	err := r.Get(ctx, req.NamespacedName, &upvote)
+	err := r.Get(ctx, req.NamespacedName, upvote)
 
 	if apierrs.IsNotFound(err) {
 		log.Info("resource gone")
@@ -42,13 +42,13 @@ func (r *CommentUpvoteReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		return ctrl.Result{}, err
 	}
 
-	err = r.setOwner(req, ctx, &upvote)
+	err = r.setOwner(ctx, upvote)
 	if err != nil {
 		log.Error(err, "unable to set comment owner")
 		return ctrl.Result{}, err
 	}
 
-	err = r.Update(ctx, &upvote)
+	err = r.Update(ctx, upvote)
 	if err != nil {
 		log.Error(err, "unable to update upvote")
 		return ctrl.Result{}, err
@@ -63,21 +63,21 @@ func (r *CommentUpvoteReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *CommentUpvoteReconciler) setOwner(req ctrl.Request, ctx context.Context, upvote *blogv1.CommentUpvote) error {
+func (r *CommentUpvoteReconciler) setOwner(ctx context.Context, upvote *blogv1.CommentUpvote) error {
 	if _, ok := upvote.Labels["comment"]; ok != true {
 		return errors.New("missing 'comment' label")
 	}
 
 	var comment blogv1.Comment
-	key := types.NamespacedName{Namespace: req.Namespace, Name: upvote.Labels["comment"]}
+	key := types.NamespacedName{Namespace: upvote.Namespace, Name: upvote.Labels["comment"]}
 	err := r.Get(ctx, key, &comment)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "unable to get the owner resource")
 	}
 
 	err = ctrl.SetControllerReference(&comment, upvote, r.Scheme)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "unable to set the owner reference")
 	}
 
 	return nil
