@@ -25,39 +25,30 @@ func (r *BlogPostReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("blogpost", req.NamespacedName)
 
-	var blogPost blogv1.BlogPost
+	blogPost := &blogv1.BlogPost{}
 
-	err := r.Get(ctx, req.NamespacedName, &blogPost)
-
+	err := r.Get(ctx, req.NamespacedName, blogPost)
 	if apierrs.IsNotFound(err) {
 		log.Info("resource gone")
 		return ctrl.Result{}, nil
 	}
-
 	if err != nil {
 		log.Error(err, "could not get resource")
 		return ctrl.Result{}, err
 	}
 
-	var commentList blogv1.CommentList
-	listOptions := []client.ListOptionFunc{
-		client.InNamespace(req.Namespace),
-		client.MatchingLabels(map[string]string{"blogpost": req.Name}),
-	}
-	err = r.List(ctx, &commentList, listOptions...)
+	numComments, err := r.countComments(ctx, log, blogPost)
 	if err != nil {
-		log.Error(err, "unable to get comment list")
+		log.Error(err, "unable to count comments")
 		return ctrl.Result{}, err
 	}
-
-	numComments := len(commentList.Items)
-
 	if numComments == blogPost.Status.CommentCount {
 		return ctrl.Result{}, nil
 	}
 
 	blogPost.Status.CommentCount = numComments
-	err = r.Status().Update(ctx, &blogPost)
+
+	err = r.Status().Update(ctx, blogPost)
 	if err != nil {
 		log.Error(err, "unable to update status")
 		return ctrl.Result{}, err
@@ -66,6 +57,24 @@ func (r *BlogPostReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	log.Info("comment count changed", "value", numComments)
 
 	return ctrl.Result{}, nil
+}
+
+func (r *BlogPostReconciler) countComments(ctx context.Context, log logr.Logger, blogPost *blogv1.BlogPost) (numComments int, err error) {
+	var commentList blogv1.CommentList
+
+	listOptions := []client.ListOptionFunc{
+		client.InNamespace(blogPost.Namespace),
+		client.MatchingLabels(map[string]string{"blogpost": blogPost.Name}),
+	}
+	err = r.List(ctx, &commentList, listOptions...)
+	if err != nil {
+		log.Error(err, "unable to get comment list")
+		return numComments, err
+	}
+
+	numComments = len(commentList.Items)
+
+	return numComments, err
 }
 
 func (r *BlogPostReconciler) SetupWithManager(mgr ctrl.Manager) error {
